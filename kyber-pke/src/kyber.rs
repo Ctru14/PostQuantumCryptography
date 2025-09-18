@@ -82,21 +82,29 @@ impl KyberKeys {
     }
 
     pub fn keygen(params: &DomainParameters) -> Self {
+        // ------ Generate public key rho and matrix A ------
+
         // Random 32B public key rho for matrix A generation
         let rho: [u8; 32] = rand::random();
 
         // Generate matrix A of polynomials of degree n using rho
         let mat_a: Vec<Vec<Poly>> = generate_matrix_a(params.n, params.k, params.q, &rho);
+        
+        // ------ Generate secret key s and error vector e ------
+
+        // Random 32B seed used for s and e generation
+        let sigma: [u8; 32] = rand::random();
+
+        // Counter used with sigma for PRF noise generation
+        let mut nonce: u8 = 0;
 
         // Secret s: k polynomials
-        let s: Vec<Poly> = (0..params.k)
-            .map(|_| random_poly(params.n, &(-params.eta1..params.eta1)))
-            .collect();
+        let s: Vec<Poly> = generate_poly_cbd_vector(params.n, params.k, params.eta1 as usize, &sigma, &mut nonce);
 
         // Error e: k polynomials
-        let e: Vec<Poly> = (0..params.k)
-            .map(|_| random_poly(params.n, &(-params.eta2..params.eta2)))
-            .collect();
+        let e: Vec<Poly> = generate_poly_cbd_vector(params.n, params.k, params.eta2 as usize, &sigma, &mut nonce);
+
+        // ------ Compute public key t = As + e (mod q) ------
 
         // Compute t = As + e (mod q)
         let t = poly_mat_vec_mul_add_mod(&mat_a, &s, &e, params.q);

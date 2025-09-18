@@ -9,9 +9,9 @@ pub fn random_poly(n: usize, range: &Range<i32>) -> Poly {
     }
 }
 
-pub fn random_bit_string(n: usize) -> Vec<u8> {
+pub fn random_bit_string(n_bits: usize) -> Vec<u8> {
     let mut rng = rand::rng();
-    (0..(n + 7) / 8).map(|_| rng.next_u32() as u8).collect()
+    (0..(n_bits + 7) / 8).map(|_| rng.next_u32() as u8).collect()
 }
 
 pub fn poly_mat_vec_mul_add_mod(
