@@ -1,3 +1,4 @@
+use crate::transforms::*;
 use crate::utils::*;
 
 pub struct DomainParameters {
@@ -44,6 +45,7 @@ impl Poly {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KyberKeys {
     // t = As + e (mod q)
+    pub rho: [u8; 32],         // Seed for matrix A generation
     pub mat_a: Vec<Vec<Poly>>, // Matrix A: Public key
     pub s: Vec<Poly>,          // Private descryption key
     pub e: Vec<Poly>,          // Error to generate t (not used afterwards)
@@ -80,14 +82,11 @@ impl KyberKeys {
     }
 
     pub fn keygen(params: &DomainParameters) -> Self {
-        // Generate random matrix A (k x k) of polynomials of degree n
-        let mat_a: Vec<Vec<Poly>> = (0..params.k)
-            .map(|_| {
-                (0..params.k)
-                    .map(|_| random_poly(params.n, &(0..params.q)))
-                    .collect()
-            })
-            .collect();
+        // Random 32B public key rho for matrix A generation
+        let rho: [u8; 32] = rand::random();
+
+        // Generate matrix A of polynomials of degree n using rho
+        let mat_a: Vec<Vec<Poly>> = generate_matrix_a(params.n, params.k, params.q, &rho);
 
         // Secret s: k polynomials
         let s: Vec<Poly> = (0..params.k)
@@ -102,7 +101,13 @@ impl KyberKeys {
         // Compute t = As + e (mod q)
         let t = poly_mat_vec_mul_add_mod(&mat_a, &s, &e, params.q);
 
-        KyberKeys { mat_a, s, e, t }
+        KyberKeys {
+            rho,
+            mat_a,
+            s,
+            e,
+            t,
+        }
     }
 }
 

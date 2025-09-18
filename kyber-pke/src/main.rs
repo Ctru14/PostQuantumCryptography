@@ -1,12 +1,11 @@
 pub mod kyber;
-pub use kyber::*;
-
+pub mod transforms;
 pub mod utils;
-pub use utils::*;
+
+use kyber::*;
+use utils::*;
 
 fn main() {
-    println!("Hello, world!");
-
     let params = DomainParameters {
         q: 3329,
         n: 256,
@@ -15,9 +14,12 @@ fn main() {
         eta2: 2,
     };
 
-    println!("Alice generates public key matrix A, secret s, error e, and computes t = As + e");
+    println!(
+        "Alice generates public key generator rho, matrix A, secret s, error e, and computes t = As + e"
+    );
     let keys = KyberKeys::keygen(&params);
 
+    println!("\nGenerator rho: {:?}", keys.rho);
     println!("Matrix A: {:?}", keys.mat_a);
     println!("Secret s: {:?}", keys.s);
     println!("Error e: {:?}", keys.e);
@@ -56,6 +58,7 @@ mod tests {
 
     fn test_keys() -> KyberKeys {
         KyberKeys {
+            rho: [0u8; 32], // Unused since matrix A is hardcoded
             mat_a: vec![
                 vec![
                     Poly {
