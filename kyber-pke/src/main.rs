@@ -16,7 +16,7 @@ fn main() {
     };
 
     println!("Alice generates public key matrix A, secret s, error e, and computes t = As + e");
-    let keys = kyber_keygen(&params);
+    let keys = KyberKeys::keygen(&params);
 
     println!("Matrix A: {:?}", keys.mat_a);
     println!("Secret s: {:?}", keys.s);

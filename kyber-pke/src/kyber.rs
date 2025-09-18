@@ -78,6 +78,32 @@ impl KyberKeys {
         // Convert polynomial of coefficients back to byte array message by rounding with q
         poly_coefs_to_message_binary(&m_poly, params.q)
     }
+
+    pub fn keygen(params: &DomainParameters) -> Self {
+        // Generate random matrix A (k x k) of polynomials of degree n
+        let mat_a: Vec<Vec<Poly>> = (0..params.k)
+            .map(|_| {
+                (0..params.k)
+                    .map(|_| random_poly(params.n, &(0..params.q)))
+                    .collect()
+            })
+            .collect();
+
+        // Secret s: k polynomials
+        let s: Vec<Poly> = (0..params.k)
+            .map(|_| random_poly(params.n, &(-params.eta1..params.eta1)))
+            .collect();
+
+        // Error e: k polynomials
+        let e: Vec<Poly> = (0..params.k)
+            .map(|_| random_poly(params.n, &(-params.eta2..params.eta2)))
+            .collect();
+
+        // Compute t = As + e (mod q)
+        let t = poly_mat_vec_mul_add_mod(&mat_a, &s, &e, params.q);
+
+        KyberKeys { mat_a, s, e, t }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

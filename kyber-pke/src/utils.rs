@@ -2,32 +2,6 @@ use crate::kyber::*;
 use rand::{Rng, RngCore};
 use std::ops::Range;
 
-pub fn kyber_keygen(params: &DomainParameters) -> KyberKeys {
-    // Generate random matrix A (k x k) of polynomials of degree n
-    let mat_a: Vec<Vec<Poly>> = (0..params.k)
-        .map(|_| {
-            (0..params.k)
-                .map(|_| random_poly(params.n, &(0..params.q)))
-                .collect()
-        })
-        .collect();
-
-    // Secret s: k polynomials
-    let s: Vec<Poly> = (0..params.k)
-        .map(|_| random_poly(params.n, &(-params.eta1..params.eta1)))
-        .collect();
-
-    // Error e: k polynomials
-    let e: Vec<Poly> = (0..params.k)
-        .map(|_| random_poly(params.n, &(-params.eta2..params.eta2)))
-        .collect();
-
-    // Compute t = As + e (mod q)
-    let t = poly_mat_vec_mul_add_mod(&mat_a, &s, &e, params.q);
-
-    KyberKeys { mat_a, s, e, t }
-}
-
 pub fn random_poly(n: usize, range: &Range<i32>) -> Poly {
     let mut rng = rand::rng();
     Poly {
