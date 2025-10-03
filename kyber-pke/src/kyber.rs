@@ -1,6 +1,8 @@
 use crate::transforms::*;
 use crate::utils::*;
+use std::fmt;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DomainParameters {
     pub q: i32,    // Modulus
     pub n: usize,  // Polynomial Order
@@ -12,6 +14,19 @@ pub struct DomainParameters {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Poly {
     pub coefs: Vec<i32>,
+}
+
+impl fmt::Display for Poly {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[")?;
+        for (i, coef) in self.coefs.iter().enumerate() {
+            if i > 0 {
+                write!(f, ",")?;
+            }
+            write!(f, "{}", coef)?;
+        }
+        write!(f, "]")
+    }
 }
 
 impl Poly {
@@ -131,4 +146,20 @@ pub struct EncryptionContext {
 pub struct Ciphertext {
     pub u: Vec<Poly>, // Vector of polynomials
     pub v: Poly,      // Single polynomial
+}
+
+impl fmt::Display for Ciphertext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Print u as list of polynomials, where each coefficient is formatted as 4 uppercase hex digits
+        write!(f, "Ciphertext: u=[")?;
+        for (i, poly) in self.u.iter().enumerate() {
+            if i > 0 {
+                write!(f, ",")?;
+            }
+            write!(f, "{}", poly)?;
+        }
+        write!(f, "], v=")?;
+        write!(f, "{}", self.v)?;
+        Ok(())
+    }
 }

@@ -14,19 +14,27 @@ fn main() {
         eta2: 2,
     };
 
+    println!("Let's demo encryption and decryption using Kyber PKE!\nWe will use the traditional domain parameters:\n{:?}\n", params);
+
     println!(
         "Alice generates public key generator rho, matrix A, secret s, error e, and computes t = As + e"
     );
     let keys = KyberKeys::keygen(&params);
 
-    println!("\nGenerator rho: {:?}", keys.rho);
-    println!("Matrix A: {:?}", keys.mat_a);
-    println!("Secret s: {:?}", keys.s);
-    println!("Error e: {:?}", keys.e);
-    println!("t = As + e: {:?}", keys.t);
+    println!("\nGenerator rho: {}", hex_from_slice(&keys.rho));
+   // Pretty-print matrix A (Vec<Vec<Poly>>)
+   println!("Matrix A: [{}]", keys.mat_a.iter().map(|row| {
+       let inner = row.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(",");
+       format!("[{}]", inner)
+   }).collect::<Vec<_>>().join(","));
+
+   // Pretty-print vectors of polynomials
+   println!("Secret s: [{}]", keys.s.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","));
+   println!("Error e: [{}]", keys.e.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","));
+    println!("t = As + e: [{}]", keys.t.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","));
 
     let message: Vec<u8> = random_bit_string(params.n);
-    println!("\nBob wants to send a message m to Alice: {:?}", message);
+    println!("\nBob wants to send a message m to Alice: {}", hex_from_vec(&message));
     let encryption_context = EncryptionContext {
         m: message.clone(),
         r: vec![
@@ -41,13 +49,20 @@ fn main() {
         ],
         e2: random_poly(params.n, &(-params.eta2..params.eta2)),
     };
-    println!("Encryption Context: {:?}", encryption_context);
+    // Pretty-print the encryption context using Poly Display and hex for m
+    println!("Encryption Context: m={} r=[{}] e1=[{}] e2={}",
+        hex_from_vec(&encryption_context.m),
+        encryption_context.r.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","),
+        encryption_context.e1.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","),
+        encryption_context.e2
+    );
     let ciphertext = keys.encrypt(&params, &encryption_context);
-    println!("Ciphertext: {:?}\nSend it to Alice!", ciphertext);
+    println!("Bob encrypts the message and sends the ciphertext to Alice:");
+    println!("{}\n", ciphertext);
 
     println!("\nNow Alice receives the ciphertext and needs to decrypt to read the message");
     let decrypted = keys.decrypt(&params, ciphertext);
-    println!("Decrypted message: {:?}", decrypted);
+    println!("Decrypted message: {}", hex_from_vec(&decrypted));
     assert_eq!(decrypted, message);
     println!("Decryption successful! (m = m')");
 }

@@ -1,6 +1,7 @@
 use crate::kyber::*;
 use rand::{Rng, RngCore};
 use std::ops::Range;
+use std::fmt;
 
 pub fn random_poly(n: usize, range: &Range<i32>) -> Poly {
     let mut rng = rand::rng();
@@ -142,4 +143,29 @@ pub fn poly_coefs_to_message_binary(poly: &Poly, q: i32) -> Vec<u8> {
         m[i / 8] |= bit << (i % 8);
     }
     m
+}
+
+/// A small wrapper that displays a byte slice as a condensed uppercase hex string.
+///
+/// Example: `&[0xAB, 0x12, 0xCD, 0x34, 0x56]` -> `AB12CD3456`
+pub struct Hex<'a>(pub &'a [u8]);
+
+impl<'a> fmt::Display for Hex<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for b in self.0 {
+            // Uppercase, two hex digits per byte, no separators
+            write!(f, "{:02X}", b)?;
+        }
+        Ok(())
+    }
+}
+
+/// Convenience constructor from a slice
+pub fn hex_from_slice<'a>(bytes: &'a [u8]) -> Hex<'a> {
+    Hex(bytes)
+}
+
+/// Convenience constructor from a Vec<u8>
+pub fn hex_from_vec<'a>(bytes: &'a Vec<u8>) -> Hex<'a> {
+    Hex(bytes.as_slice())
 }
