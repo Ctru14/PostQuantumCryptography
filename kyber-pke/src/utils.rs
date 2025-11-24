@@ -1,7 +1,7 @@
 use crate::kyber::*;
 use rand::{Rng, RngCore};
-use std::ops::Range;
 use std::fmt;
+use std::ops::Range;
 
 pub fn random_poly(n: usize, range: &Range<i32>) -> Poly {
     let mut rng = rand::rng();
@@ -12,7 +12,9 @@ pub fn random_poly(n: usize, range: &Range<i32>) -> Poly {
 
 pub fn random_bit_string(n_bits: usize) -> Vec<u8> {
     let mut rng = rand::rng();
-    (0..(n_bits + 7) / 8).map(|_| rng.next_u32() as u8).collect()
+    (0..(n_bits + 7) / 8)
+        .map(|_| rng.next_u32() as u8)
+        .collect()
 }
 
 pub fn poly_mat_vec_mul_add_mod(
@@ -168,4 +170,9 @@ pub fn hex_from_slice<'a>(bytes: &'a [u8]) -> Hex<'a> {
 /// Convenience constructor from a Vec<u8>
 pub fn hex_from_vec<'a>(bytes: &'a Vec<u8>) -> Hex<'a> {
     Hex(bytes.as_slice())
+}
+
+/// Integer divides a / b, rounding up if the remainder is >= 0.5
+pub fn div_round_half_up(a: i32, b: i32) -> i32 {
+    (a + b / 2) / b
 }

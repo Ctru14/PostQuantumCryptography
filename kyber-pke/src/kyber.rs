@@ -104,7 +104,7 @@ impl KyberKeys {
 
         // Generate matrix A of polynomials of degree n using rho
         let mat_a: Vec<Vec<Poly>> = generate_matrix_a(params.n, params.k, params.q, &rho);
-        
+
         // ------ Generate secret key s and error vector e ------
 
         // Random 32B seed used for s and e generation
@@ -114,10 +114,12 @@ impl KyberKeys {
         let mut nonce: u8 = 0;
 
         // Secret s: k polynomials
-        let s: Vec<Poly> = generate_poly_cbd_vector(params.n, params.k, params.eta1 as usize, &sigma, &mut nonce);
+        let s: Vec<Poly> =
+            generate_poly_cbd_vector(params.n, params.k, params.eta1 as usize, &sigma, &mut nonce);
 
         // Error e: k polynomials
-        let e: Vec<Poly> = generate_poly_cbd_vector(params.n, params.k, params.eta2 as usize, &sigma, &mut nonce);
+        let e: Vec<Poly> =
+            generate_poly_cbd_vector(params.n, params.k, params.eta2 as usize, &sigma, &mut nonce);
 
         // ------ Compute public key t = As + e (mod q) ------
 
@@ -162,4 +164,21 @@ impl fmt::Display for Ciphertext {
         write!(f, "{}", self.v)?;
         Ok(())
     }
+}
+
+/// Compress a polynomial coefficient by discarding lower bits
+///
+/// round[(2^d/q*x)] mod 2^d
+/// Rounding operation rounds up at or above .5, down when below
+pub fn compress(x: i32, q: i32, d: i32) -> i32 {
+    let max = 1 << d;
+    div_round_half_up(max * x, q) % max
+}
+
+/// Decompress a polynomial coefficient by restoring lower bits
+///
+/// round((q/2^d)*y) mod q
+/// Rounding operation rounds up at or above .5, down when below
+pub fn decompress(y: i32, q: i32, d: i32) -> i32 {
+    div_round_half_up(q * y, 1 << d)
 }

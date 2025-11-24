@@ -1,6 +1,6 @@
 use crate::kyber::*;
-use sha3::{Shake128, Shake256};
 use sha3::digest::{ExtendableOutput, Update, XofReader};
+use sha3::{Shake128, Shake256};
 
 /// Generate matrix A of size k x k with polynomial elements of order n and coefficients mod q
 /// Uses seed rho to deterministically generate the matrix
@@ -87,7 +87,14 @@ pub fn generate_pseudorandom_bytes(seed: &[u8; 32], num_bytes: usize, nonce: u8)
     buf
 }
 
-pub fn generate_poly_cbd_vector(n: usize, k: usize, eta: usize, seed: &[u8; 32], nonce: &mut u8) -> Vec<Poly> {
+/// Generate a vector of k polynomials sampled from Central Binomial Distribution with parameter eta
+pub fn generate_poly_cbd_vector(
+    n: usize,
+    k: usize,
+    eta: usize,
+    seed: &[u8; 32],
+    nonce: &mut u8,
+) -> Vec<Poly> {
     (0..k)
         .map(|_| {
             let mut num_bytes = 2 * n * eta + n + eta; // Number of bits

@@ -14,7 +14,10 @@ fn main() {
         eta2: 2,
     };
 
-    println!("Let's demo encryption and decryption using Kyber PKE!\nWe will use the traditional domain parameters:\n{:?}\n", params);
+    println!(
+        "Let's demo encryption and decryption using Kyber PKE!\nWe will use the traditional domain parameters:\n{:?}\n",
+        params
+    );
 
     println!(
         "Alice generates public key generator rho, matrix A, secret s, error e, and computes t = As + e"
@@ -22,19 +25,54 @@ fn main() {
     let keys = KyberKeys::keygen(&params);
 
     println!("\nGenerator rho: {}", hex_from_slice(&keys.rho));
-   // Pretty-print matrix A (Vec<Vec<Poly>>)
-   println!("Matrix A: [{}]", keys.mat_a.iter().map(|row| {
-       let inner = row.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(",");
-       format!("[{}]", inner)
-   }).collect::<Vec<_>>().join(","));
+    // Pretty-print matrix A (Vec<Vec<Poly>>)
+    println!(
+        "Matrix A: [{}]",
+        keys.mat_a
+            .iter()
+            .map(|row| {
+                let inner = row
+                    .iter()
+                    .map(|p| format!("{}", p))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                format!("[{}]", inner)
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    );
 
-   // Pretty-print vectors of polynomials
-   println!("Secret s: [{}]", keys.s.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","));
-   println!("Error e: [{}]", keys.e.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","));
-    println!("t = As + e: [{}]", keys.t.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","));
+    // Pretty-print vectors of polynomials
+    println!(
+        "Secret s: [{}]",
+        keys.s
+            .iter()
+            .map(|p| format!("{}", p))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    println!(
+        "Error e: [{}]",
+        keys.e
+            .iter()
+            .map(|p| format!("{}", p))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    println!(
+        "t = As + e: [{}]",
+        keys.t
+            .iter()
+            .map(|p| format!("{}", p))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
 
     let message: Vec<u8> = random_bit_string(params.n);
-    println!("\nBob wants to send a message m to Alice: {}", hex_from_vec(&message));
+    println!(
+        "\nBob wants to send a message m to Alice: {}",
+        hex_from_vec(&message)
+    );
     let encryption_context = EncryptionContext {
         m: message.clone(),
         r: vec![
@@ -50,10 +88,21 @@ fn main() {
         e2: random_poly(params.n, &(-params.eta2..params.eta2)),
     };
     // Pretty-print the encryption context using Poly Display and hex for m
-    println!("Encryption Context: m={} r=[{}] e1=[{}] e2={}",
+    println!(
+        "Encryption Context: m={} r=[{}] e1=[{}] e2={}",
         hex_from_vec(&encryption_context.m),
-        encryption_context.r.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","),
-        encryption_context.e1.iter().map(|p| format!("{}", p)).collect::<Vec<_>>().join(","),
+        encryption_context
+            .r
+            .iter()
+            .map(|p| format!("{}", p))
+            .collect::<Vec<_>>()
+            .join(","),
+        encryption_context
+            .e1
+            .iter()
+            .map(|p| format!("{}", p))
+            .collect::<Vec<_>>()
+            .join(","),
         encryption_context.e2
     );
     let ciphertext = keys.encrypt(&params, &encryption_context);
@@ -119,19 +168,23 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_key_generation() {
-        let toy_params = DomainParameters {
+    const fn test_parameters() -> DomainParameters {
+        DomainParameters {
             q: 137,
             n: 4,
             k: 2,
             eta1: 2,
             eta2: 2,
-        };
+        }
+    }
+
+    #[test]
+    fn test_key_generation() {
+        let params = test_parameters();
 
         let keys = test_keys();
 
-        let t: Vec<Poly> = poly_mat_vec_mul_add_mod(&keys.mat_a, &keys.s, &keys.e, toy_params.q);
+        let t: Vec<Poly> = poly_mat_vec_mul_add_mod(&keys.mat_a, &keys.s, &keys.e, params.q);
 
         assert_eq!(t, keys.t);
     }
@@ -184,13 +237,7 @@ mod tests {
 
     #[test]
     fn test_encrypt_message() {
-        let params = DomainParameters {
-            q: 137,
-            n: 4,
-            k: 2,
-            eta1: 2,
-            eta2: 2,
-        };
+        let params = test_parameters();
 
         let keys = test_keys();
 
@@ -241,13 +288,7 @@ mod tests {
 
     #[test]
     fn test_decrypt_message() {
-        let params = DomainParameters {
-            q: 137,
-            n: 4,
-            k: 2,
-            eta1: 2,
-            eta2: 2,
-        };
+        let params = test_parameters();
 
         let keys = test_keys();
 
@@ -271,5 +312,68 @@ mod tests {
             decrypted,
             vec![0b0111] // Last 4 bits
         );
+    }
+
+    #[test]
+    fn test_compress() {
+        use kyber::compress;
+        const Q: i32 = 19;
+        const D: i32 = 2;
+        let q19_inputs = vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+        ];
+        let q19_compr2 = vec![0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 0, 0];
+
+        for i in 0..q19_inputs.len() {
+            let compr = compress(q19_inputs[i], Q, D);
+            assert_eq!(compr, q19_compr2[i]);
+        }
+    }
+
+    #[test]
+    fn test_decompress() {
+        use kyber::decompress;
+        const Q: i32 = 19;
+        const D: i32 = 2;
+        let q19_compr2 = vec![0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 0, 0];
+        let q19_decmpr = vec![
+            0, 0, 0, 5, 5, 5, 5, 5, 10, 10, 10, 10, 14, 14, 14, 14, 14, 0, 0,
+        ];
+
+        for i in 0..q19_compr2.len() {
+            let decmpr = decompress(q19_compr2[i], Q, D);
+            assert_eq!(decmpr, q19_decmpr[i]);
+        }
+    }
+
+    #[test]
+    fn test_decompress_compress() {
+        const Q: i32 = test_parameters().q;
+
+        // For x in [0..q-1], ||Decompress(Compress(X))|| <= round[q/2^(d+1)]
+        for d in 8..24 {
+            for coef in 0..Q {
+                let inner = compress(coef, Q, d);
+                let combined = decompress(inner, Q, d);
+                let mag = (combined - coef).abs();
+                let bound = div_round_half_up(Q, 1 << (d + 1));
+                assert!(mag <= bound);
+            }
+        }
+    }
+
+    #[test]
+    fn test_compress_decompress() {
+        const Q: i32 = test_parameters().q;
+
+        for d in 1..8 {
+            for coef in 0..(1 << d) {
+                let inner = decompress(coef, Q, d);
+                let combined = compress(inner, Q, d);
+                let mag = (combined - coef).abs();
+                let bound = div_round_half_up(Q, 1 << (d + 1));
+                assert!(mag <= bound);
+            }
+        }
     }
 }
