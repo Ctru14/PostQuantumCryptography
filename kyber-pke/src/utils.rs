@@ -147,6 +147,33 @@ pub fn poly_coefs_to_message_binary(poly: &Poly, q: i32) -> Vec<u8> {
     m
 }
 
+/// Finds the modular inverse of `num` in mod `modulus`
+/// num * out % modulus = 1
+pub fn find_modular_inverse(num: u32, modulus: u32) -> u32 {
+    let (mut x, mut y) = (0, 0);
+    let (gcd, x, _y) = extended_euclidean(num as i32, modulus as i32, &mut x, &mut y);
+    if gcd != 1 {
+        panic!("num and modulus are not coprime!");
+    }
+    let mut inv = x % modulus as i32;
+    if inv < 0 {
+        inv += modulus as i32;
+    }
+    inv as u32
+}
+
+fn extended_euclidean(a: i32, b: i32, x: &mut i32, y: &mut i32) -> (i32, i32, i32) {
+    if a == 0 {
+        *x = 0;
+        *y = 1;
+        return (b, *x, *y);
+    }
+    let (gcd, x1, y1) = extended_euclidean(b % a, a, x, y);
+    *x = y1 - (b / a) * x1;
+    *y = x1;
+    (gcd, *x, *y)
+}
+
 /// A small wrapper that displays a byte slice as a condensed uppercase hex string.
 ///
 /// Example: `&[0xAB, 0x12, 0xCD, 0x34, 0x56]` -> `AB12CD3456`

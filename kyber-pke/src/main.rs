@@ -118,6 +118,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use crate::transforms::{NttParameters, ntt_inv_long, ntt_long};
+
     use super::*;
 
     fn test_keys() -> KyberKeys {
@@ -375,5 +377,78 @@ mod tests {
                 assert!(mag <= bound);
             }
         }
+    }
+
+    #[test]
+    fn test_ntt() {
+        // ---------------- NTT paper examples ----------------
+        let params = &NttParameters::new(4, 7681, 3383);
+        // G
+        let g_poly = Poly {
+            coefs: vec![1, 2, 3, 4],
+        };
+        let g_ntt = ntt_long(&g_poly, params);
+        println!("g0: {g_poly}");
+        println!("g1: {g_ntt}");
+        let g_ntt_expected = Poly {
+            coefs: vec![10, 913, 7679, 6764],
+        };
+
+        assert_eq!(g_ntt, g_ntt_expected);
+
+        // H
+        let h_poly = Poly {
+            coefs: vec![5, 6, 7, 8],
+        };
+        let h_ntt = ntt_long(&h_poly, params);
+        println!("h0: {h_poly}");
+        println!("h1: {h_ntt}");
+    }
+
+    #[test]
+    fn test_ntt_inv() {
+        // ---------------- NTT paper examples ----------------
+        let params = &NttParameters::new(4, 7681, 3383);
+        // xi = 3383 -> xi_inv = 4298 (mod 7681)
+        // G
+        let g_ntt = Poly {
+            coefs: vec![10, 913, 7679, 6764],
+        };
+        let g_poly = ntt_inv_long(&g_ntt, params);
+
+        let g_expected = Poly {
+            coefs: vec![1, 2, 3, 4],
+        };
+        assert_eq!(g_poly, g_expected);
+    }
+
+    #[test]
+    fn test_ntt_invertible() {
+        // ---------------- NTT paper examples ----------------
+        let params = &NttParameters::new(4, 7681, 3383);
+
+        // G
+        let g_poly = Poly {
+            coefs: vec![1, 2, 3, 4],
+        };
+        let g_ntt = ntt_long(&g_poly, params);
+        let g_reverted = ntt_inv_long(&g_ntt, params);
+        assert_eq!(g_poly, g_reverted);
+
+        // H
+        let h_poly = Poly {
+            coefs: vec![5, 6, 7, 8],
+        };
+        let h_ntt = ntt_long(&h_poly, params);
+        let h_reverted = ntt_inv_long(&h_ntt, params);
+        assert_eq!(h_poly, h_reverted);
+
+        // Random
+        let r_poly = Poly {
+            coefs: vec![18, 27, 923, 2011],
+        };
+        let r_ntt = ntt_long(&r_poly, params);
+        let r_reverted = ntt_inv_long(&r_ntt, params);
+        assert_eq!(r_poly, r_reverted);
     }
 }

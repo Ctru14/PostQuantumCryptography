@@ -1,6 +1,33 @@
 use crate::kyber::*;
+use crate::utils::*;
+use mod_exp::mod_exp;
 use sha3::digest::{ExtendableOutput, Update, XofReader};
 use sha3::{Shake128, Shake256};
+
+pub struct NttParameters {
+    /// N: Dimensionality of polynomials
+    pub n: usize,
+    /// Q: Modulus
+    pub q: u32,
+    /// Xi: Primitive n-th root of unity modulo q (xi^n mod q = 1)
+    pub xi: u32,
+    /// N_inv: Modular inverse of N modulo Q
+    pub n_inv: u32,
+    /// Xi_inv: Modular inverse of Xi modulo Q
+    pub xi_inv: u32,
+}
+
+impl NttParameters {
+    pub fn new(n: usize, q: u32, xi: u32) -> Self {
+        Self {
+            n,
+            q,
+            xi,
+            n_inv: find_modular_inverse(n as u32, q),
+            xi_inv: find_modular_inverse(xi, q),
+        }
+    }
+}
 
 /// Generate matrix A of size k x k with polynomial elements of order n and coefficients mod q
 /// Uses seed rho to deterministically generate the matrix
@@ -97,11 +124,66 @@ pub fn generate_poly_cbd_vector(
 ) -> Vec<Poly> {
     (0..k)
         .map(|_| {
-            let mut num_bytes = 2 * n * eta + n + eta; // Number of bits
-            num_bytes = num_bytes / 8 + if num_bytes % 8 != 0 { 1 } else { 0 }; // Convert to bytes, round up
+            let num_bits = 2 * n * eta + n + eta;
+            let num_bytes = num_bits / 8 + if num_bits % 8 != 0 { 1 } else { 0 }; // Convert to bytes, round up
             let bytes = generate_pseudorandom_bytes(seed, num_bytes, *nonce);
             *nonce = nonce.wrapping_add(1); // Increment nonce for next polynomial
             sample_poly_cbd(n, eta, &bytes)
         })
         .collect()
+}
+
+/// Performs the Number Theoretic Transform on a given polynomial
+/// Uses the long but simple O(N^2) matrix multiplication method
+///
+/// Parameters:
+///     poly (Poly): Input polynomial
+///     params (NttParameters) contains the following:
+///     n (usize):   Order of the polynomial (x^0 + ... + x^(n-1))
+///     q (i32):     Modulus of operations
+///     xi (u32):    nth root of unity in Zq: xi^n = 1 mod q
+pub fn ntt_long(poly: &Poly, params: &NttParameters) -> Poly {
+    let mut out = Poly::zeros(poly.degree());
+    assert!(params.n == poly.degree());
+
+    for (j, coef) in out.coefs.iter_mut().enumerate() {
+        for i in 0..params.n {
+            *coef += mod_exp(params.xi, (i * j) as u32, params.q.try_into().unwrap()) as i32
+                * poly.coefs[i];
+            *coef %= params.q as i32;
+        }
+    }
+
+    out
+}
+
+/// Performs the Inverse Number Theoretic Transform on the transformed polynomial, returning the original coefficients
+/// Uses the long but simple O(N^2) matrix multiplication method
+///
+/// Parameters:
+///     poly (Poly):  Input polynomial
+///     params (NttParameters) contains the following:
+///     n (usize):    Order of the polynomial (x^0 + ... + x^(n-1))
+///     q (u32):      Modulus of operations
+///     xi_inv (u32): Inverse nth root of unity in Zq: xi^n = 1 mod q
+///     n_inv (i32):  Modular multiplicative inverse of n mod q
+pub fn ntt_inv_long(poly: &Poly, params: &NttParameters) -> Poly {
+    let mut out = Poly::zeros(poly.degree());
+    assert!(params.n == poly.degree());
+
+    for (j, coef) in out.coefs.iter_mut().enumerate() {
+        for i in 0..params.n {
+            // xi^(-1)(i*j) = (xi^(-1))^(i*j)
+            let add = mod_exp(params.xi_inv, (j * i) as u32, params.q) as i32 * poly.coefs[i];
+            *coef += add;
+            *coef %= params.q as i32;
+            println!("({}, {}): + {} % q = {}", i, j, add, coef);
+        }
+        print!("coef[{}] = {} -> ", j, coef);
+        *coef *= params.n_inv as i32;
+        *coef %= params.q as i32;
+        println!("{}", coef);
+    }
+
+    out
 }

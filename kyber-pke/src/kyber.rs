@@ -11,6 +11,9 @@ pub struct DomainParameters {
     pub eta2: i32, // Noise term for error polynomial e
 }
 
+/// Polynomial representented by its coefficients
+/// coefs[i] = factor of x^i
+/// Ex: [5, 6, 7, 8] = 5 + 6x^2 + 7x^3 + 8x^4
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Poly {
     pub coefs: Vec<i32>,
@@ -30,6 +33,12 @@ impl fmt::Display for Poly {
 }
 
 impl Poly {
+    pub fn zeros(len: usize) -> Self {
+        Self {
+            coefs: std::vec![0; len],
+        }
+    }
+
     pub fn degree(&self) -> usize {
         self.coefs.len()
     }
